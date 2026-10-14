@@ -127,7 +127,7 @@ select{font:inherit;padding:11px 12px;border:1.5px solid var(--line);border-radi
   <a class="item admin" id="navAdmin" href="admin.html"><i>A</i><div>Admin<small>Log in to manage bookings</small></div></a>
 </aside>
 <main>
-  <div class="top pub"><span class="pill">OPEN DAILY</span><b id="cfHours">Court Hours: 3:00PM to 4:00AM</b><span id="cfPrices">₱200/hour 3PM–4AM</span></div>
+  <div class="top pub"><span class="pill">OPEN DAILY</span><b id="cfHours">Court Hours: 3:00PM to 4:00AM</b><span id="cfPrices">₱180/hour 3PM–4PM | ₱230/hour 4PM–4AM</span></div>
   <section class="hero pub"><div class="hero-in">
     <p class="where" id="cfWhere"><b>KING COURT &amp; QUEEN COURT</b> · MC Village, Block 3, Brgy. Fatima, General Santos City &nbsp;|&nbsp; Bookings &amp; inquiries: 0955 547 6570</p>
     <h1 id="cfH1">It's Your Court. It's Your Time.<em>Welcome to Paddle King Court!</em></h1>
@@ -141,7 +141,7 @@ select{font:inherit;padding:11px 12px;border:1.5px solid var(--line);border-radi
       <div class="row"><div><div class="eyebrow">SELECT YOUR PLAY TIME</div><h2 id="availT">King Court availability</h2></div>
         <label class="jump"><span>JUMP TO DATE</span><input type="date" id="jump"></label></div>
       <div class="courts" id="courts"><button type="button" data-court="king" aria-pressed="true">King Court</button><button type="button" data-court="queen" aria-pressed="false">Queen Court</button></div>
-      <div class="nav"><button id="prev" aria-label="Previous week">&larr;</button><div><b id="range"></b><div class="m">Book up to 30 days ahead</div></div><button id="next" aria-label="Next week">&rarr;</button></div>
+      <div class="nav"><button id="prev" aria-label="Previous week">&larr;</button><div><b id="range"></b><div class="m" id="cfAhead">Book up to 10 years ahead</div></div><button id="next" aria-label="Next week">&rarr;</button></div>
       <div class="days" id="days"></div>
       <h3 id="long"></h3>
       <div class="row"><span class="m">Asia/Manila timezone</span>
@@ -203,7 +203,7 @@ const CONFIG={
   headline:["It's Your Court. It's Your Time.","Welcome to Paddle King Court!"],
   earlyNote:"Early bookings from 6 AM are available with advance notice. Message us at 0955 547 6570.",
   /* hours and prices (same numbers as setup.sql; 24-hour clock, 24 = 12 AM, 27 = 3 AM) */
-  openHour:15, lastHour:27, peakFrom:16, priceLow:180, priceHigh:230, maxDaysAhead:30,
+  openHour:15, lastHour:27, peakFrom:16, priceLow:180, priceHigh:230, maxDaysAhead:3650,   // 3650 = about 10 years ahead (also set in setup.sql)
   hoursText:"3:00PM to 4:00AM", tagHours:"Open 3PM–4AM",
   priceText:"₱180/hour 3PM–4PM | ₱230/hour 4PM–4AM",
   dial:{from:"3",to:"4",ampm:"PM    AM"},
@@ -323,6 +323,7 @@ function applyConfig(){
  set('cfHours','Court Hours: '+e(C.hoursText));set('cfPrices',e(C.priceText));
  set('cfWhere','<b>'+e((CN.king+' & '+CN.queen).toUpperCase())+'</b> · '+e(C.address)+' &nbsp;|&nbsp; Bookings &amp; inquiries: '+e(C.phone));
  set('cfH1',e(C.headline[0])+'<em>'+e(C.headline[1])+'</em>');
+ {const n=C.maxDaysAhead;set('cfAhead','Book up to '+(n>=365?Math.round(n/365)+' year'+(Math.round(n/365)>1?'s':''):n+' days')+' ahead')}
  set('cfTagHours',e(C.tagHours));set('cfEarly',e(C.earlyNote));
  const d=$('cfDial');if(d){d.setAttribute('aria-label',"Today's hours "+C.hoursText);d.innerHTML='<div><small>TODAY\'S HOURS</small><b>'+e(C.dial.from)+'</b><span>to</span><b>'+e(C.dial.to)+'</b><div class="m" style="color:#9fb6e0">'+e(C.dial.ampm).replace(/ {2,}/g,' &nbsp;&nbsp;&nbsp; ')+'</div></div>'}
  set('cfFoot',e(C.tagline)+'<br>'+e(C.address)+' · '+e(C.phone)+' · '+e(C.email)+'<br>© '+e(C.brand.join(' '))+' · Bookings are saved live');
