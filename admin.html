@@ -79,7 +79,7 @@ input:focus,select:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 4px
 <body>
 <header class="bar"><div class="logo" aria-hidden="true"><img src="logo.jpg" alt="" onerror="this.remove()"></div><b id="cfBrand">Paddle <span>King Court</span> admin</b><div class="sp"></div><a href="index.html">View booking page</a><button id="alertBtn" hidden title="Sound and pop-up when a new booking arrives">Alerts: off</button><button id="out" hidden>Log out</button></header>
 <main class="wrap">
-  <form id="login" class="card">
+  <form id="login" class="card" onsubmit="return false">
     <h1>Admin login</h1>
     <p class="m">Log in with your admin username and password.</p>
     <input id="em" type="text" placeholder="Admin email" autocomplete="username" autocapitalize="none" required>
@@ -103,6 +103,8 @@ input:focus,select:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 4px
 </main>
 <div class="toast" id="toast" hidden></div>
 <script>
+window.addEventListener('error',e=>{const el=document.getElementById('err');if(el)el.textContent='Page error: '+(e.message||e)});
+window.addEventListener('unhandledrejection',e=>{const el=document.getElementById('err');if(el)el.textContent='Error: '+((e.reason&&e.reason.message)||e.reason)});
 /* =====================================================================
    SETTINGS - edit for each client (same Supabase URL/key as index.html)
    ===================================================================== */
@@ -205,4 +207,36 @@ function beep(){try{ac=ac||new AC();if(ac.state==='suspended')ac.resume();
     o.start(t);o.stop(t+.3)}}catch{}}
 const alertLabel=()=>{$('alertBtn').textContent='Alerts: '+(alertsOn?'on':'off')};alertLabel();
 $('alertBtn').onclick=async()=>{alertsOn=!alertsOn;try{localStorage.setItem('pk_alerts',alertsOn?'1':'0')}catch{}alertLabel();
-  if(alertsOn){beep();if('Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}}toast('Alerts on
+  if(alertsOn){beep();if('Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}}toast('Alerts on. Keep this page open to hear new bookings.')}};
+function checkNew(){const ids=new Set(rows.filter(r=>r.status==='pending').map(r=>r.id));
+  if(seen){const fresh=rows.filter(r=>r.status==='pending'&&!seen.has(r.id));
+    if(fresh.length&&alertsOn){beep();const who=[...new Set(fresh.map(r=>r.name))].join(', ');
+      if('Notification' in window&&Notification.permission==='granted'){try{new Notification('New booking',{body:who+' - '+fresh.length+' hour(s) waiting for confirmation',requireInteraction:true})}catch{}}
+      toast('New booking: '+who)}}
+  seen=ids}
+function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2600)}
+async function load(){
+  try{rows=await rpc('admin_list_bookings');checkNew();show(true);render()}
+  catch(x){const inApp=!$('app').hidden;
+    if(x.status===401||x.status===403||x.status===404){save(null);show(false);
+      $('err').textContent=x.status===404?'Admin setup not finished: run setup.sql in Supabase.':x.status===403?'This account is not an admin.':'Your login expired. Please log in again.'}
+    else if(!inApp)$('err').textContent='Could not load bookings: '+x.message+(x.status?' (code '+x.status+')':'');
+    else toast('Could not refresh. Retrying...')}
+}
+function show(on){$('alertBtn').hidden=!on;if(!on)seen=null;$('login').hidden=on;$('app').hidden=!on;$('out').hidden=!on;clearInterval(timer);if(on)timer=setInterval(load,15000)}
+$('login').onsubmit=async e=>{e.preventDefault();$('err').textContent='';const b=e.target.querySelector('button');b.disabled=true;b.textContent='Logging in...';
+  try{await auth('password',{email:(v=>v.includes('@')||!CONFIG.usernameDomain?v:v+'@'+CONFIG.usernameDomain)($('em').value.trim().toLowerCase()),password:$('pw').value});$('pw').value='';await load()}catch(x){$('err').textContent=x.message}b.disabled=false;b.textContent='Log in'};
+$('out').onclick=()=>{save(null);rows=[];show(false)};
+$('tabs').onclick=e=>{const b=e.target.closest('.tab');if(b){tab=b.dataset.t;render()}};
+$('q').oninput=$('d').oninput=render;
+$('list').onclick=async e=>{
+  const b=e.target.closest('button[data-a]');if(!b)return;const a=b.dataset.a,ids=b.closest('.acts').dataset.ids.split(',');
+  if(a==='cancel'&&!b.classList.contains('arm')){b.classList.add('arm');b.textContent='Sure? Delete';setTimeout(()=>{b.classList.remove('arm');b.textContent='Delete'},3000);return}
+  b.disabled=true;
+  try{if(a==='cancel')await rpc('admin_cancel',{p_ids:ids});else await rpc('admin_set_status',{p_ids:ids,p_status:a==='confirm'?'confirmed':'pending'});
+    toast(a==='confirm'?'Booking confirmed':a==='cancel'?'Booking deleted':'Marked pending');await load()}
+  catch(x){b.disabled=false;toast('Failed: '+x.message)}};
+if(sess)load();
+</script>
+</body>
+</html>
